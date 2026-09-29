@@ -75,3 +75,32 @@ jobs:
 
           docker push gabomur/multi-worker:latest
           docker push gabomur/multi-worker:${{ github.sha }}
+
+  deploy:
+    name: Desplegar en Kubernetes local
+    needs: build-and-push
+    runs-on: self-hosted
+
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar acceso a Kubernetes
+        run: |
+          kubectl config current-context
+          kubectl get pods
+
+      - name: Aplicar manifiestos Kubernetes
+        run: kubectl apply -f k8s
+
+      - name: Actualizar imágenes de los Deployments
+        run: |
+          kubectl set image deployment/client-deployment client=gabomur/multi-client:latest
+          kubectl set image deployment/server-deployment server=gabomur/multi-server:latest
+          kubectl set image deployment/worker-deployment worker=gabomur/multi-worker:latest
+
+      - name: Esperar los rollouts
+        run: |
+          kubectl rollout status deployment/client-deployment --timeout=120s
+          kubectl rollout status deployment/server-deployment --timeout=120s
+          kubectl rollout status deployment/worker-deployment --timeout=120s
