@@ -1,0 +1,24 @@
+name: Multi-K8s CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Construir imagen de pruebas del cliente
+        run: docker build -t multi-client-test -f ./client/Dockerfile.dev ./client
+
+      - name: Ejecutar tests del cliente
+        run: docker run -e CI=true multi-client-test npm test -- --watchAll=false
